@@ -5,7 +5,7 @@ N=size(W,1);
 
 % Add susceptibillity
 if ph.width_sus > 0
-    dChi=zeros(N,N,N);
+    dChi=zeros(ph.N,ph.N,ph.N);
     dChi(N/2-ph.width_sus:N/2+ph.width_sus,N/2-ph.width_sus:N/2+...
         ph.width_sus,N/2-ph.width_sus:N/2+ph.width_sus)=3*10^-6+...
         .25*10^-6*rand(2*ph.width_sus+1,2*ph.width_sus+1,2*ph.width_sus+1); % Titanium alloy
@@ -26,5 +26,11 @@ B0=B0+dOhmega(:,:,N/2);
 % Calculate derivative of B0 for intravoxel dephasing
 der_B0=1/4*conv2(B0,[0 -1 0; -1 4 -1; 0 -1 0],'same');
 
+% Visualization
+if ph.vis==1
+    subplot(4,4,[1 2 5 6]);imshow(W,[]);title('Water phantom')
+    subplot(4,4,[3 4 7 8]);imshow(F,[]);title('Fat phantom')
+    subplot(4,4,[9 10 13 14]);imshow(B0,[]);colormap(gca, jet);title('B0 - susceptibillity');
+end
 % END
 end

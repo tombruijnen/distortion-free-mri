@@ -1,11 +1,14 @@
 %% DSPI method for distortion free MRI
 clear all;close all;clc;
-addpath(genpath(cd))
-addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\MReconUMC\MReconUMC\Packages\utils'))
-addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\MReconUMC\MReconUMC\Standalone\Greengard_nufft\'))
-addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\Distortion_free_mri\distortion-free-mri\distortion-free-mri\'));
+% Windows
+% addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\MReconUMC\MReconUMC\Packages\utils'))
+% addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\MReconUMC\MReconUMC\Standalone\Greengard_nufft\'))
+% addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\Distortion_free_mri\distortion-free-mri\distortion-free-mri\'));
+% cd('C:\Users\tombruijnen\Documents\Programming\MATLAB\RECON_MAIN\Main_Recon_Library\')
 
-cd('C:\Users\tombruijnen\Documents\Programming\MATLAB\RECON_MAIN\Main_Recon_Library\')
+% Linux
+addpath(genpath('/nfs/bsc01/researchData/USER/tbruijne/Projects_Main/Distortion_Free_MRI'))
+cd('/nfs/rtsan02/userdata/home/tbruijne/Documents/Main_Recon_Library')
 setup;
 
 %% Body
