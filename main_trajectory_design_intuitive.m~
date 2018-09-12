@@ -1,0 +1,95 @@
+%% Create the initial sliding window spiral trajectory for ACDSPI
+clear all;close all;clc;restoredefaultpath;
+
+%% 1) Design a single-shot 2D spiral gradient waveform 
+addpath(genpath('/nfs/rtsan02/userdata/home/tbruijne/Documents/ACDSPI_PROJECT'))
+addpath(genpath('/nfs/rtsan02/userdata/home/tbruijne/Documents/Main_Recon_Library'))
+FOV = 300E-01; % [cm]
+RES = 1.5; % [mm]
+TS = 6.4E-06; %[s]
+SMAX = 20000; % [T/cm/s]
+GMAX = 2.25; % [T/cm]
+N_INTERLEAVES = 50;
+M = round(FOV * 10/ RES);
+
+% Trajectory
+[k,G,~,~,~,~] = vds(SMAX,GMAX,TS,N_INTERLEAVES,[FOV -FOV/2.2],5/RES);
+k = cat(1,[0 0 real(k)],[0 0 imag(k)],[0 0 zeros(size(k))])';
+G = cat(1,[0 0 real(G)],[0 0 imag(G)],[0 0 zeros(size(G))])';
+
+% Rewind with mirror waveform
+k = cat(1,k,flip(k,1));
+G = cat(1,G,flip(G,1));
+t_grad = 0 : TS : TS * numel(k(:,1)); t_grad(end) = [];
+
+%% 2) Shift the gradient waveform (trajectory) in time to mimic the acquisition
+% ADC opens exactly halfway the gradient waveform and shifts with Fs
+dt_adc = 5E-06;
+t_adc = t_grad(end) : dt_adc : 2 * t_grad(end);
+if mod(numel(t_adc),2) > 0
+    t_adc(end + 1) = t_adc(end) + TS;
+end
+
+% Rotation of the spiral
+d_ang = (pi/(((1+sqrt(5))/2)));
+
+% Fully sampled if Nro = numel(time / 2)
+Nro = 350;
+dt_gr = 2 * t_grad(end) / (Nro - 1);
+
+% Loop over all readouts, shift the trajectory and compute k-space
+filename = 'DSPI_waveform.gif';
+fps = 10;
+nn = 8;
+%colors = (0 : 1 / (Nro - 1) : 1)' * [.2 .2 1];
+colors = flip(brewermap(2 * numel(t_adc),'Reds'),1);
+colors = colors(1 : numel(t_adc),:);
+blues = brewermap(10,'Blues');
+
+k_dspi = zeros(Nro,3,1,1,numel(t_adc),'single');
+figure,
+for n = 1 : 1 : Nro
+    t_vec = t_grad + (n - 1) * dt_gr;
+    ang = d_ang * (n - 1);
+    k_x = cos(ang) * k(:,1) - sin(ang) * k(:,2);
+    k_y = sin(ang) * k(:,1) + cos(ang) * k(:,2);
+    k_dspi(n,1,1,1,:) = interp1(t_vec,k_x,t_adc,'linear','extrap');
+    k_dspi(n,2,1,1,:) = interp1(t_vec,k_y,t_adc,'linear','extrap');
+    subplot(5,4,[1 2 5 6]);plot(10^3 * t_vec,k_x,'Color',blues(10,:),'LineWidth',3);hold on;plot(10^3 * t_vec,k_y,'Color',blues(5,:),'LineWidth',3);
+    plot([0 t_vec(1)],[0 0],'Color',blues(10,:),'LineWidth',3);plot([t_vec(end) ],[0 0],'Color',blues(10,:),'LineWidth',3);    
+  
+    scatter(10^3 * t_adc,0 * t_adc,50,colors);hold off;axis([0 3 * 10^3 * t_grad(end) -4 5]);
+    title('Gradient waveform');xlabel('Time [ms]');ylabel('G_{str} [mT/m]');legend('G_{x}','G_{y}','ADC','Orientation','horizontal','Location','north')
+    set(gca,'LineWidth',3,'FontSize',16,'FontWeight','bold','XTick',0:2:12,'YTick',-4:2:5);grid on;box on
+    subplot(5,4,[3 4 7 8]);plot(k_x,k_y,'LineWidth',3);axis([-4 4 -4 4]);xlabel('kx');ylabel('ky');title('K-space trajectory')
+    set(gca,'LineWidth',3,'FontSize',16,'FontWeight','bold','XTick',[-4:2:4],'YTick',[-4:2:4],'XTickLabel',[],'YTickLabel',[]);box on ;grid on
+    delete(h1);
+    h1=annotation('textbox',[0.800 0.67 1 0],'string',['# ', num2str(n)],'FontWeight','bold','FontSize',20,'EdgeColor','none');
+
+    for n2 = 1 : nn
+        idx = round(1 + (n2 - 1) * size(k_dspi,5) / nn);
+        subplot(5,4,12 + n2);scatter(k_dspi(:,1,1,1,idx),k_dspi(:,2,1,1,idx),25,colors(idx,:),'filled');box on;grid on;hold off;
+        title(['Sample #',num2str(idx)]);set(gca,'LineWidth',3,'XTick',[-4:2:4],'YTick',[-4:2:4],'FontSize',10,'FontWeight','bold','XTickLabel',[],'YTickLabel',[])
+        axis([-4 4 -4 4])
+    end
+    
+  
+    if n == 1
+        set(gcf, 'Position', [2    40   980   953],'Color','w');
+        annotation('textbox',[0.345 0.48 1 0],'string','Single-point k-spaces','FontWeight','bold','FontSize',20,'EdgeColor','none')
+    end
+    pause(.1);
+    drawnow;
+%     A = getframe(gcf);
+%     im=frame2im(A);
+%     [A,map]=rgb2ind(im,256);
+%     if ~exist(filename,'file')
+%         imwrite(A,map,filename,'gif','WriteMode','overwrite','delaytime',1/fps, 'LoopCount', 65535);
+%     else
+%         imwrite(A,map,filename,'gif','WriteMode','append','delaytime',1/fps);    
+%     end
+%     
+%     pause(.1);
+    n
+end
+

@@ -18,7 +18,7 @@ addpath(genpath('C:\Users\tombruijnen\Documents\Programming\MATLAB\MReconUMC_V5\
 woff_fat=220; % Hz
 
 % Phantom + field generation
-N=64;
+N=256;
 
 % Water layer phantom
 x_w=phantom(N);
@@ -31,17 +31,17 @@ subplot(331);imshow(x_w,[]);title('Water phantom')
 subplot(332);imshow(x_f,[]);title('Fat phantom')
 
 % Add susceptibillity  source
-width_sus=2;
+width_sus=25;
 dChi=zeros(N,N,N);
-dChi(N/2-width_sus:N/2+width_sus,N/2-width_sus:N/2+width_sus,N/2-width_sus:N/2+width_sus)=3*10^-6+.25*10^-6*rand(2*width_sus+1,2*width_sus+1,2*width_sus+1); % Titanium alloy
+dChi(N/2-width_sus:N/2+width_sus,N/2-width_sus:N/2+width_sus,N/2-width_sus:N/2+width_sus)=3*10^-6+.5*10^-6*rand(2*width_sus+1,2*width_sus+1,2*width_sus+1); % Titanium alloy
 B0 = 3; % tesla;
 voxelSize = [1 1 1]; % mm
 gyromagneticRatio = 2*pi*42.58e6;
 dB = B0*calculateFieldShift(dChi, voxelSize);
-dOhmega = dB*gyromagneticRatio;
+dOhmega = 3*dB*gyromagneticRatio;
 
 w_max=50; % 100 Hz
-B0=rot90(w_max*normalise(generate_b0(1,N)),1)+dOhmega(:,:,N/2);
+B0=rot90(w_max*normalise(generate_b0(1,N)),1)+dOhmega(:,:,round(.5*N));
 
 % Calculate derivative of B0 for intravoxel dephasing
 der_B0=conv2(B0,[0 -1 0; -1 4 -1; 0 -1 0],'same');
@@ -51,7 +51,7 @@ subplot(334);imshow(der_B0,[]);colormap(gca, jet);title('Derivative B0 ');
 
 % Sequence settings
 SQ.TE=1.4E-03;
-SQ.ADC_duration=1E-03;
+SQ.ADC_duration=1.5E-03;
 SQ.ADC_dt=SQ.ADC_duration/(N);
 fat_phi=@(tau,woff)(sin((woff_fat+woff).*tau));
 water_phi=@(tau,woff)(sin(woff.*tau));
@@ -65,15 +65,16 @@ for fe=1:N
         exp(-1j*2*pi*water_phi(t,B0)).*x_w;
     
     % Apply intravoxel dephasing 
-    for xcoord=1:N^2
-    spins=t*der_B0(xcoord);
-    if spins(end)>1
-        x(xcoord)=0;
-    else
-        x(xcoord)=x(xcoord)*exp(-4.6*abs(spins));
-    end
-    end
-    
+%     for xcoord=1:N^2
+%     spins=t*der_B0(xcoord);
+%     if spins(end)>1
+%         x(xcoord)=0;
+%     else
+%         x(xcoord)=x(xcoord)*exp(-4.6*abs(spins));
+%     end
+%     end
+%     
+    ph(:,:,fe)=x;
     % Sample a complete phase-encode line (say TE)
     X=ifftshift(fft2(fftshift(x)));
     k(fe,:)=X(fe,:);
